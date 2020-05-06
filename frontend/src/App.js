@@ -9,6 +9,48 @@ import SignupForm from './components/SignupForm';
 
 import '../node_modules/bootstrap/dist/css/bootstrap.min.css';
 
+import Biconomy from "@biconomy/mexa";
+import Web3 from "web3";
+
+
+ 
+
+const biconomy = new Biconomy(window.ethereum, {apiKey: "P7v8fGV15.273b596b-2136-45a0-8353-da68ccdc849a", strictMode: true});
+const web3 = new Web3(biconomy);
+
+
+
+biconomy.onEvent(biconomy.READY, () => {
+
+  if(biconomy.isLogin) {
+    console.log("User is already logged in");
+  } else {
+    console.log("User is not logged in to biconomy");
+    // Login user here  
+  }
+  
+ // Initialize your dapp here
+}).onEvent(biconomy.ERROR, (error, message) => {
+ // Handle error while initializing mexa
+});
+
+biconomy.login("0xd7C9bab7b63304E793Ae6e508954AAe023df1735", (error, response) => {
+ if(error) {
+ // Error while user login to biconomy
+ return;
+ }
+ 
+ if(response.transactionHash) {
+ // First time user. Contract wallet transaction pending. Wait for confirmation.
+ } else if(response.userContract) {
+ // Existing user login successful
+ }
+});
+
+biconomy.onEvent(biconomy.LOGIN_CONFIRMATION, (log) => {
+ // User's Contract Wallet creation successful
+});
+
 
 class App extends Component {
   constructor(props) {
@@ -16,8 +58,10 @@ class App extends Component {
     this.state = {
       displayed_form: '',
       logged_in: localStorage.getItem('token') ? true : false,
-      username: ''
+      username: '',
+      isConnected: false, peers: 0, version: ''
     };
+    this.web3 = new Web3(new Web3.providers.HttpProvider('http://localhost:8545'));
   }
 
   componentDidMount() {
@@ -32,7 +76,17 @@ class App extends Component {
           this.setState({ username: json.username });
         });
     }
+
+
+    if(this.web3 && this.web3.isConnected) {
+      this.setState({isConnected: true});
+      if(this.web3.net.listening) {
+        this.setState({peers: this.web3.net.peerCount});
+      }
+      this.setState({version: this.web3.version.node})
+    }
   }
+
 
   handle_login = (e, data) => {
     e.preventDefault();
@@ -100,6 +154,28 @@ class App extends Component {
 
     return (
       <div className="App">
+
+      {/*<div>
+        <h2>Is connected?:</h2><br/> {this.state.isConnected?'Connected to local node':'Not Connected'}
+        <br/>
+        <br/>
+        <h2>The number of peers:</h2><br/> {this.state.peers}
+        <br/>
+        <br/>
+        <h2>Node info:</h2><br/> {this.state.version}
+      </div>*/}
+
+<Router>
+      <div className='App'>
+        <Switch>
+          <Route exact path="/" component={ Landing } />
+          {//<Route path="/idk" component={ Auth } />
+  }
+        </Switch>
+      </div>
+    </Router>
+
+
         <Nav
           logged_in={this.state.logged_in}
           display_form={this.display_form}
@@ -112,15 +188,7 @@ class App extends Component {
             : 'Please Log In'}
         </h3>
 
-        <Router>
-      <div className='App'>
-        <Switch>
-          <Route exact path="/" component={ Landing } />
-          {//<Route path="/idk" component={ Auth } />
-  }
-        </Switch>
-      </div>
-    </Router>
+       
       </div>
     );
   }
